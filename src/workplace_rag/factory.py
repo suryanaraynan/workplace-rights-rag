@@ -15,6 +15,7 @@ def load_pipeline(cfg: dict | None = None) -> RAGPipeline:
     cfg = cfg or load_config()
     e, ix, r = cfg["embeddings"], cfg["index"], cfg["retrieval"]
     embedder = Embedder(e["model_name"], e.get("query_prefix", ""))
+    embedder.embed_query("warm-up")  # load the model now, so the first question isn't slow
     retriever = Retriever(embedder, PROJECT_ROOT / ix["persist_dir"], ix["collection"])
     return RAGPipeline(retriever, LLMClient.from_config(cfg["llm"]),
                        top_k=r["top_k"], min_score=r["min_score"],

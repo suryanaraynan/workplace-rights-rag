@@ -24,11 +24,11 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 echo "GROQ_API_KEY=your-key" > .env   # free key from console.groq.com
 
-python scripts/ingest.py      # fetch 34 curated GOV.UK pages -> data/processed/
+python scripts/ingest.py      # fetch 34 curated GOV.UK pages (458 chunks) -> data/processed/
 python scripts/build_index.py # embed chunks into a local ChromaDB index
 python scripts/ask.py "How much statutory sick pay can an employee get?"
 streamlit run app.py          # web UI with answers, sources and scores
-pytest                        # 28 tests, no network or API key needed
+pytest                        # 29 tests, no network or API key needed
 ```
 
 ## Project structure

@@ -44,7 +44,16 @@ class Document:
 
 
 def _clean(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip()
+    """Collapse whitespace and undo spacing artifacts from joining inline HTML
+    elements, e.g. "( SSP )" -> "(SSP)", "workers ." -> "workers."."""
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"\s+([.,;:!?)\]’])", r"\1", text)
+    text = re.sub(r"([(\[‘])\s+", r"\1", text)
+    return text.strip()
+
+
+# Site boilerplate that carries no guidance, seen in real data.
+_BOILERPLATE = re.compile(r"This guide is also available in Welsh \(Cymraeg\)\.?\s*", re.IGNORECASE)
 
 
 # Placeholder sections seen in real data, e.g. "Northern Ireland: [TBC]".
@@ -77,7 +86,7 @@ def html_to_sections(html: str, default_heading: str, url: str) -> list[Section]
     heading, parent, h2, lines = default_heading, "", default_heading, []
 
     def flush():
-        text = _clean(" ".join(lines))
+        text = _BOILERPLATE.sub("", _clean(" ".join(lines))).strip()
         if text and not is_placeholder(text):
             sections.append(Section(heading=heading, text=text, url=url, parent=parent))
 

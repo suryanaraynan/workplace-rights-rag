@@ -1,0 +1,7 @@
+[server]
+# Streamlit's file watcher walks every imported module, including transformers'
+# optional vision modules, and logs torchvision import errors. Not needed here.
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false

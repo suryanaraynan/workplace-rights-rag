@@ -57,3 +57,11 @@ def test_h3_remembers_its_h2_parent():
     html = "<h2>Types of flexible working</h2><p>Intro.</p><h3>Job sharing</h3><p>Two people.</p>"
     secs = html_to_sections(html, "T", "u")
     assert secs[1].heading_path == "Types of flexible working > Job sharing"
+
+
+def test_spacing_artifacts_and_boilerplate_are_cleaned():
+    html = ("<p>You can get Statutory Sick Pay ( <abbr>SSP</abbr> ) . "
+            "This guide is also available in Welsh (Cymraeg). "
+            "Different rules for <a>agricultural workers</a> .</p>")
+    text = html_to_sections(html, "T", "u")[0].text
+    assert text == "You can get Statutory Sick Pay (SSP). Different rules for agricultural workers."

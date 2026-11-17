@@ -149,7 +149,7 @@ I didn't trust the pipeline just because the tests passed — I looked at the ou
 | Metric | v1 (search crawl) | v2 (curated + fixes) |
 |---|---|---|
 | Documents | 66 | 34 |
-| Chunks | 1,826 | 463 |
+| Chunks | 1,826 | 458 |
 | Median chunk length | 58 words | 82 words |
 | Chunks under 50 words | 600 (33%) | 46 (10%) |
 | `[TBC]` placeholder chunks | 12 | 0 |
@@ -168,10 +168,10 @@ Three root causes, three fixes:
 The remaining short chunks are genuine one-fact page parts; merging them
 across pages would break citation links, so I kept them deliberately.
 
-**Chunks per topic:** family leave 91, holidays & time off 80, discrimination
+**Chunks per topic:** family leave 87, holidays & time off 80, discrimination
 & disability 67, contracts & status 62, pay & pensions 49, dismissal &
 redundancy 42, working hours & flexibility 34, disputes & whistleblowing 21,
-sick leave 17. The imbalance matters for step 3 (eval questions should cover
+sick leave 16. The imbalance matters for step 3 (eval questions should cover
 small topics too) and step 4 (classifier class imbalance).
 
 ### Engineering habits to point out
@@ -262,11 +262,34 @@ that the citations it gave actually exist.
 source shows its similarity score, whether it was actually cited (✅), and
 a link to GOV.UK. An expander shows the exact prompt sent to the model.
 
-### Measured
-_To fill in after running:_ index build time, typical retrieval and
-generation latency, tokens per question. Quality metrics (hit-rate,
-faithfulness) come in step 3. Until then, this step is "it works", not
-"it's good". Say exactly that in interviews: it shows maturity.
+### Measured (first real run, MacBook Air M2, 17 Nov 2026)
+| Metric | Value |
+|---|---|
+| Index build (463 chunks, incl. first model download) | 24.6 s; embedding itself ~2 s |
+| Generation (Groq `gpt-oss-120b`) | 0.82 s |
+| Tokens per question (in / out) | 812 / 87, matching the ~900 estimate |
+| Retrieval, first question | 5.23 s, a **cold start** (see below) |
+
+Example: *"How much statutory sick pay can an employee get?"* →
+*"up to £123.25 per week… paid for a maximum of 28 weeks [1][2]"*, with
+both citations valid. **£123.25 is the current rate from GOV.UK**, which
+shows the point of RAG: a plain LLM would likely quote an older figure
+from its training data.
+
+Quality metrics (hit-rate, faithfulness) come in step 3. Until then, this
+step is "it works", not "it's good". Say exactly that in interviews: it
+shows maturity.
+
+### Fixes from the first real run
+1. **Cold start.** Retrieval showed 5.2 s, but that was the embedding
+   model loading lazily on the first question, not the search. Now the
+   model warms up when the app starts, so timings measure what they claim.
+2. **Text artifacts.** Joining inline HTML left `( SSP )` and
+   `workers .`, plus a boilerplate line ("also available in Welsh") inside
+   content. Cleaned at parse time with a regression test; 463 → 458 chunks.
+3. **Noisy logs.** Streamlit's file watcher scanned every transformers
+   module and logged `torchvision` import errors. Disabled in
+   `.streamlit/config.toml`. Harmless, but noisy logs hide real errors.
 
 ### A real-world lesson
 The original plan was Llama 3.3 on Groq. When building, I checked Groq's
@@ -275,7 +298,7 @@ Because the LLM sits behind a config-driven interface, switching to
 `gpt-oss-120b` was one line. Hosted models get retired; design for it.
 
 ### Engineering habits to point out
-- 28 tests; the pipeline is tested with fake retriever/LLM/embedder, so
+- 29 tests; the pipeline is tested with fake retriever/LLM/embedder, so
   tests are fast, free and never call an API.
 - API key in `.env`, which is git-ignored; a missing key gives a clear error.
 - Same `load_pipeline()` factory used by the CLI and the UI: one source of truth.
@@ -300,6 +323,12 @@ they don't cover it, (3) low temperature, (4) a similarity threshold that
 skips the LLM entirely for off-topic questions, (5) a code-level citation
 check, and in step 3 (6) a faithfulness evaluation. Plus: the user always
 sees the evidence, so a human can check.
+
+**Q: Your first query took 5 seconds. Why?**
+A: Cold start: the embedding model loaded lazily on the first request. I
+moved loading to start-up (warm-up), so user-facing latency and my
+timing metrics both reflect the actual retrieval. In production you'd
+also warm up containers before they take traffic.
 
 **Q: Why cosine similarity?**
 A: It compares direction, not length, so a short question and a long
