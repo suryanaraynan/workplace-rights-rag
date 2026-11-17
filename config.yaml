@@ -1,0 +1,53 @@
+# Central configuration. Every tunable choice lives here, not in code,
+# so experiments (e.g. different chunk sizes) are a config change.
+
+govuk:
+  base_url: "https://www.gov.uk"
+  request_delay_seconds: 0.5     # be polite to a public API
+  timeout_seconds: 20
+  # Content formats we keep. Others (forms, news, transactions) are noise for Q&A.
+  allowed_formats: ["answer", "guide", "detailed_guide"]
+
+  # Hand-picked core pages: guarantees the key topics are covered.
+  seed_paths:
+    - /statutory-sick-pay
+    - /taking-sick-leave
+    - /holiday-entitlement-rights
+    - /flexible-working
+    - /maternity-pay-leave
+    - /paternity-pay-leave
+    - /shared-parental-leave-and-pay
+    - /parental-leave
+    - /time-off-for-dependants
+    - /redundant-your-rights
+    - /dismissal
+    - /solve-workplace-dispute
+    - /national-minimum-wage
+    - /maximum-weekly-working-hours
+    - /rest-breaks-work
+    - /whistleblowing
+    - /discrimination-your-rights
+    - /agency-workers-your-rights
+    - /employment-contracts-and-conditions
+
+  # Search queries widen coverage beyond the seeds (discovery step).
+  search_queries:
+    - "employee rights sick pay"
+    - "workplace stress employer duty"
+    - "flexible working request"
+    - "holiday pay entitlement"
+    - "redundancy pay rights"
+    - "unfair dismissal"
+    - "workplace discrimination"
+    - "reasonable adjustments disability work"
+    - "parental leave pay"
+    - "working time rest breaks"
+  results_per_query: 10
+
+chunking:
+  max_words: 200        # ~260 tokens: small enough for precise retrieval
+  overlap_words: 40     # keeps sentences that straddle a boundary findable
+
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed

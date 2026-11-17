@@ -1,0 +1,32 @@
+{
+  "base_path": "/statutory-sick-pay",
+  "content_id": "abc-123",
+  "title": "Statutory Sick Pay (SSP)",
+  "description": "Statutory Sick Pay (SSP) - eligibility, how much you can get, how to claim.",
+  "schema_name": "guide",
+  "document_type": "guide",
+  "public_updated_at": "2026-04-06T09:00:00Z",
+  "details": {
+    "parts": [
+      {
+        "title": "Overview",
+        "slug": "overview",
+        "body": "<p>You can get Statutory Sick Pay (SSP) if you're too ill to work.</p><p>It's paid by your employer.</p>"
+      },
+      {
+        "title": "What you'll get",
+        "slug": "what-youll-get",
+        "body": [
+          {"content_type": "text/govspeak", "content": "ignored"},
+          {"content_type": "text/html", "content": "<h2>Rates</h2><table><tr><th>Week</th><th>Amount</th></tr><tr><td>Standard</td><td>£118.75</td></tr></table><h2>How long</h2><ul><li>Up to 28 weeks.</li></ul>"}
+        ]
+      }
+    ]
+  },
+  "links": {
+    "taxons": [
+      {"title": "Sick pay", "base_path": "/employment/sick-pay"},
+      {"title": "Employing people", "base_path": "/employing-people"}
+    ]
+  }
+}

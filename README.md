@@ -1,0 +1,50 @@
+# Workplace Rights & Wellbeing Assistant
+
+An explainable RAG + ML assistant that answers UK employee-rights and
+workplace-wellbeing questions from official GOV.UK guidance — **with
+citations**, and **escalation to a human** when it isn't confident.
+
+> **Scenario:** An HR services firm wants line managers to get fast,
+> consistent, sourced answers to questions like *"Can my employee get sick
+> pay after 3 days off?"* — without the risk of confidently wrong advice.
+
+## Roadmap
+| Step | Component | Status |
+|---|---|---|
+| 1 | Ingestion, cleaning, heading-aware chunking | ✅ |
+| 2 | RAG with citations + Streamlit UI | ⏳ |
+| 3 | Evaluation set and metrics (hit-rate, MRR, faithfulness) | ⏳ |
+| 4 | Topic classifier (TF-IDF baseline vs embeddings) | ⏳ |
+| 5 | Agent: classify → retrieve → answer or escalate | ⏳ |
+| 6 | CI, logging, Docker, optional Azure | ⏳ |
+
+## Quick start
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/ingest.py      # fetches GOV.UK pages -> data/processed/
+pytest                        # 12 tests, no network needed
+```
+
+## Project structure
+```
+config.yaml                  all tunable settings
+src/workplace_rag/
+  ingest/govuk_client.py     GOV.UK API client (rate-limited, cached)
+  ingest/parse.py            HTML -> structured sections
+  chunking.py                heading-aware chunking with overlap
+scripts/ingest.py            step 1 pipeline
+tests/                       unit tests with fixtures
+docs/interview-guide.md      why/how/alternatives for every component
+```
+
+## Design decisions
+See [docs/interview-guide.md](docs/interview-guide.md) — each component
+documents why it exists, alternatives considered, and how it was measured.
+
+## Data and licence
+Code: MIT. Data: Contains public sector information licensed under the
+[Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
+Raw data is not committed; run `scripts/ingest.py` to reproduce it.
+
+This tool provides general information, not legal advice.

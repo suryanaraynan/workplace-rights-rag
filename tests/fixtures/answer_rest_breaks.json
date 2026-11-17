@@ -1,0 +1,12 @@
+{
+  "base_path": "/rest-breaks-work",
+  "title": "Rest breaks at work",
+  "description": "Workers' rights to rest breaks.",
+  "schema_name": "answer",
+  "document_type": "answer",
+  "public_updated_at": "2025-01-10T09:00:00Z",
+  "details": {
+    "body": "<p>Workers over 18 are usually entitled to 3 types of break.</p><h2>Rest breaks at work</h2><p>Workers have the right to one uninterrupted 20 minute rest break during their working day, if they work more than 6 hours a day.</p>"
+  },
+  "links": {}
+}
