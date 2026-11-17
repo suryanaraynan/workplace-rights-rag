@@ -1,4 +1,12 @@
+# Step 1: ingestion
 requests>=2.31
 beautifulsoup4>=4.12
 pyyaml>=6.0
+# Step 2: RAG
+sentence-transformers>=3.0   # local embeddings (~90 MB model)
+chromadb>=1.0                # local vector store
+openai>=1.40                 # client for Groq / Ollama / OpenAI (same API)
+python-dotenv>=1.0           # loads GROQ_API_KEY from .env
+streamlit>=1.40              # UI
+# Dev
 pytest>=8.0

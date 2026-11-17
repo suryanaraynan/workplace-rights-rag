@@ -79,6 +79,40 @@ chunking:
   overlap_words: 40     # keeps sentences that straddle a boundary findable
   min_words: 50         # sections smaller than this merge with their neighbours
 
+# ---------------- Step 2: RAG ----------------
+embeddings:
+  model_name: sentence-transformers/all-MiniLM-L6-v2   # ~90 MB, runs locally
+  query_prefix: ""
+
+index:
+  persist_dir: data/index
+  collection: govuk_chunks
+
+retrieval:
+  top_k: 5          # chunks passed to the LLM (~700 tokens of context)
+  min_score: 0.30   # below this, answer "not found" without calling the LLM.
+                    # Provisional: calibrated on the eval set in step 3.
+
+llm:
+  provider: groq    # groq | ollama | openai  (switch here, no code changes)
+  temperature: 0.1  # low: we want faithful, repeatable answers, not creativity
+  max_tokens: 1024
+  providers:
+    groq:
+      base_url: https://api.groq.com/openai/v1
+      api_key_env: GROQ_API_KEY
+      model: openai/gpt-oss-120b      # Llama 3.x was retired by Groq in Aug 2026
+      extra_body: {reasoning_effort: low}
+    ollama:
+      base_url: http://localhost:11434/v1
+      api_key_env: ""
+      model: llama3.2:3b
+    openai:
+      base_url: https://api.openai.com/v1
+      api_key_env: OPENAI_API_KEY
+      model: gpt-4o-mini
+
 paths:
   raw_dir: data/raw
   processed_dir: data/processed
+  query_log: data/logs/queries.jsonl
