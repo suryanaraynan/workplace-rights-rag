@@ -34,3 +34,21 @@ def test_chunk_ids_are_unique():
 def test_invalid_overlap_rejected():
     with pytest.raises(ValueError):
         _windows(["a"] * 10, max_words=5, overlap=5)
+
+
+def test_small_sibling_sections_merge_under_parent_heading():
+    doc = Document("d", "u", "Flexible working", "", "guide", "", sections=[
+        Section("Types of flexible working", "There are different ways.", "u"),
+        Section("Job sharing", "Two people split one job.", "u", parent="Types of flexible working"),
+        Section("Part time", "Fewer hours.", "u", parent="Types of flexible working"),
+    ])
+    chunks = chunk_document(doc, max_words=200, overlap_words=40, min_words=50)
+    assert len(chunks) == 1
+    assert chunks[0].text.startswith("Flexible working > Types of flexible working\n")
+    assert "Job sharing: Two people" in chunks[0].body and "Part time: Fewer" in chunks[0].body
+
+
+def test_sections_on_different_urls_never_merge():
+    doc = Document("d", "u", "T", "", "guide", "", sections=[
+        Section("A", "short", "u/a"), Section("B", "short", "u/b")])
+    assert len(chunk_document(doc, min_words=50)) == 2  # citations stay exact

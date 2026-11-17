@@ -1,4 +1,4 @@
-"""Step 1 pipeline: discover -> fetch -> parse -> chunk -> save.
+"""Step 1 pipeline: curated corpus -> fetch -> parse -> chunk -> save.
 
 Usage:
     python scripts/ingest.py              # uses cached raw files where present
@@ -24,15 +24,19 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 log = logging.getLogger("ingest")
 
 
-def discover_paths(client: GovUKClient, cfg: dict) -> list[str]:
-    paths = list(cfg["seed_paths"])
-    allowed = set(cfg["allowed_formats"])
-    for q in cfg["search_queries"]:
-        for r in client.search(q, cfg["results_per_query"]):
-            link = r.get("link", "")
-            if link.startswith("/") and r.get("format") in allowed:
-                paths.append(link)
-    return list(dict.fromkeys(paths))  # de-duplicate, keep order
+def fetch_following_redirects(client: GovUKClient, path: str, use_cache: bool,
+                              max_hops: int = 3) -> dict | None:
+    """GOV.UK pages move. A 'redirect' item names its new destination; follow it."""
+    for _ in range(max_hops):
+        raw = client.get_content(path, use_cache=use_cache)
+        if raw is None or raw.get("schema_name") != "redirect":
+            return raw
+        dest = (raw.get("redirects") or [{}])[0].get("destination", "")
+        if not dest.startswith("/"):
+            return None
+        log.info("Redirect: %s -> %s (update config.yaml)", path, dest)
+        path = dest.split("#")[0]
+    return None
 
 
 def main() -> None:
@@ -47,24 +51,23 @@ def main() -> None:
     out_dir = PROJECT_ROOT / p["processed_dir"]
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    paths = discover_paths(client, g)
-    log.info("Discovered %d candidate pages", len(paths))
-
-    docs, chunks, skipped = [], [], Counter()
-    for path in paths:
-        raw = client.get_content(path, use_cache=not args.refresh)
-        if raw is None:
-            skipped["not_found"] += 1
-            continue
-        if raw.get("schema_name") not in g["allowed_formats"]:
-            skipped[f"format:{raw.get('schema_name')}"] += 1
-            continue
-        doc = parse_content(raw, g["base_url"])
-        if not doc.sections:
-            skipped["empty"] += 1
-            continue
-        docs.append(doc)
-        chunks += chunk_document(doc, ch["max_words"], ch["overlap_words"])
+    docs, chunks, skipped, seen = [], [], Counter(), set()
+    for topic, paths in cfg["corpus"].items():
+        for path in paths:
+            raw = fetch_following_redirects(client, path, use_cache=not args.refresh)
+            if raw is None:
+                skipped["not_found"] += 1
+                continue
+            if raw.get("schema_name") not in g["allowed_formats"]:
+                skipped[f"format:{raw.get('schema_name')}"] += 1
+                continue
+            doc = parse_content(raw, g["base_url"], topic=topic)
+            if doc.doc_id in seen or not doc.sections:
+                skipped["duplicate_or_empty"] += 1
+                continue
+            seen.add(doc.doc_id)
+            docs.append(doc)
+            chunks += chunk_document(doc, ch["max_words"], ch["overlap_words"], ch["min_words"])
 
     with open(out_dir / "documents.jsonl", "w", encoding="utf-8") as f:
         for d in docs:
@@ -74,11 +77,12 @@ def main() -> None:
             f.write(json.dumps(c.to_dict(), ensure_ascii=False) + "\n")
 
     lengths = sorted(len(c.body.split()) for c in chunks) or [0]
-    topics = Counter(t for d in docs for t in d.topics)
+    small = sum(n < ch["min_words"] for n in lengths)
     log.info("Documents: %d | Chunks: %d | Skipped: %s", len(docs), len(chunks), dict(skipped))
-    log.info("Chunk words: min %d, median %d, max %d",
-             lengths[0], lengths[len(lengths) // 2], lengths[-1])
-    log.info("Top topics: %s", topics.most_common(10))
+    log.info("Chunk words: min %d, median %d, max %d | under %d words: %d (%.0f%%)",
+             lengths[0], lengths[len(lengths) // 2], lengths[-1],
+             ch["min_words"], small, 100 * small / max(len(lengths), 1))
+    log.info("Chunks per topic: %s", Counter(c.topic for c in chunks).most_common())
 
 
 if __name__ == "__main__":

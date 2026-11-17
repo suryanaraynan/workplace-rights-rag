@@ -8,29 +8,59 @@ govuk:
   # Content formats we keep. Others (forms, news, transactions) are noise for Q&A.
   allowed_formats: ["answer", "guide", "detailed_guide"]
 
-  # Hand-picked core pages: guarantees the key topics are covered.
-  seed_paths:
+# Curated corpus: topic label -> GOV.UK pages.
+# Why curated, not crawled: v1 auto-discovered pages via search and pulled in
+# off-topic content (visas, driving tests, emergency recovery = ~40% of chunks).
+# GOV.UK's own topic tags were too inconsistent to filter on, so pages are
+# hand-labelled. These labels also train the step-4 topic classifier.
+corpus:
+  sick_leave:
     - /statutory-sick-pay
     - /taking-sick-leave
-    - /holiday-entitlement-rights
-    - /flexible-working
+  family_leave:
     - /maternity-pay-leave
+    - /employers-maternity-pay-leave
     - /paternity-pay-leave
     - /shared-parental-leave-and-pay
+    - /shared-parental-leave-and-pay-employer-guide
     - /parental-leave
+  holidays_and_time_off:
+    - /holiday-entitlement-rights
     - /time-off-for-dependants
-    - /redundant-your-rights
-    - /dismissal
-    - /solve-workplace-dispute
-    - /national-minimum-wage
+    - /parental-bereavement-pay-leave
+    - /employers-parental-bereavement-pay-leave
+  working_hours_and_flexibility:
+    - /flexible-working
     - /maximum-weekly-working-hours
     - /rest-breaks-work
-    - /whistleblowing
-    - /discrimination-your-rights
-    - /agency-workers-your-rights
+  pay_and_pensions:
+    - /national-minimum-wage
+    - /pay-and-work-rights
+    - /workplace-pensions
+  contracts_and_status:
     - /employment-contracts-and-conditions
+    - /contract-types-and-employer-responsibilities
+    - /employment-status
+    - /agency-workers-your-rights
+    - /working-retirement-pension-age
+  dismissal_and_redundancy:
+    - /dismissal
+    - /redundancy-your-rights
+    - /lay-offs-short-timeworking
+  disputes_and_whistleblowing:
+    - /solve-workplace-dispute
+    - /whistleblowing
+  discrimination_and_disability:
+    - /discrimination-your-rights
+    - /employer-preventing-discrimination
+    - /reasonable-adjustments-for-disabled-workers
+    - /access-to-work
+    - /rights-disabled-person
+    - /guidance/equality-act-2010-guidance
 
-  # Search queries widen coverage beyond the seeds (discovery step).
+# Used only by scripts/discover.py, which suggests NEW pages for a human to
+# review and add to the corpus above. Nothing is auto-included.
+discovery:
   search_queries:
     - "employee rights sick pay"
     - "workplace stress employer duty"
@@ -47,6 +77,7 @@ govuk:
 chunking:
   max_words: 200        # ~260 tokens: small enough for precise retrieval
   overlap_words: 40     # keeps sentences that straddle a boundary findable
+  min_words: 50         # sections smaller than this merge with their neighbours
 
 paths:
   raw_dir: data/raw

@@ -22,18 +22,20 @@ citations**, and **escalation to a human** when it isn't confident.
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python scripts/ingest.py      # fetches GOV.UK pages -> data/processed/
-pytest                        # 12 tests, no network needed
+python scripts/ingest.py      # fetches 34 curated GOV.UK pages -> data/processed/
+pytest                        # 18 tests, no network needed
+python scripts/discover.py    # optional: suggest new pages to review
 ```
 
 ## Project structure
 ```
-config.yaml                  all tunable settings
+config.yaml                  settings + curated corpus with topic labels
 src/workplace_rag/
   ingest/govuk_client.py     GOV.UK API client (rate-limited, cached)
   ingest/parse.py            HTML -> structured sections
   chunking.py                heading-aware chunking with overlap
 scripts/ingest.py            step 1 pipeline
+scripts/discover.py          suggests new pages for human review
 tests/                       unit tests with fixtures
 docs/interview-guide.md      why/how/alternatives for every component
 ```

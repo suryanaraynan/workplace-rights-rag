@@ -46,3 +46,14 @@ def test_nested_list_text_not_duplicated():
     html = "<ul><li><p>Outer point</p><ul><li>Inner</li></ul></li></ul>"
     text = html_to_sections(html, "T", "u")[0].text
     assert text.count("Inner") == 1 and text.count("Outer point") == 1
+
+
+def test_placeholder_sections_are_dropped():
+    html = "<h2>Scotland</h2><p>[TBC]</p><h2>Wales</h2><p>Same rules apply.</p>"
+    assert [s.heading for s in html_to_sections(html, "T", "u")] == ["Wales"]
+
+
+def test_h3_remembers_its_h2_parent():
+    html = "<h2>Types of flexible working</h2><p>Intro.</p><h3>Job sharing</h3><p>Two people.</p>"
+    secs = html_to_sections(html, "T", "u")
+    assert secs[1].heading_path == "Types of flexible working > Job sharing"

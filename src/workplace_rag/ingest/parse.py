@@ -19,7 +19,12 @@ BLOCK_TAGS = {"p", "li", "tr"}
 class Section:
     heading: str
     text: str
-    url: str  # deep link: guides have one URL per part
+    url: str          # deep link: guides have one URL per part
+    parent: str = ""  # enclosing h2 when this section starts at an h3/h4
+
+    @property
+    def heading_path(self) -> str:
+        return f"{self.parent} > {self.heading}" if self.parent else self.heading
 
 
 @dataclass
@@ -30,7 +35,8 @@ class Document:
     description: str
     doc_format: str
     updated_at: str
-    topics: list[str] = field(default_factory=list)
+    topic: str = ""                                   # our curated label
+    topics: list[str] = field(default_factory=list)   # GOV.UK's own tags (inconsistent)
     sections: list[Section] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -39,6 +45,14 @@ class Document:
 
 def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+# Placeholder sections seen in real data, e.g. "Northern Ireland: [TBC]".
+_PLACEHOLDER = re.compile(r"^\[?\s*(tbc|to be confirmed|n/?a)\s*\]?\.?$", re.IGNORECASE)
+
+
+def is_placeholder(text: str) -> bool:
+    return bool(_PLACEHOLDER.match(text.strip()))
 
 
 def _body_to_html(body) -> str:
@@ -59,17 +73,22 @@ def html_to_sections(html: str, default_heading: str, url: str) -> list[Section]
     belong to it. Table rows become 'cell | cell' lines, so numbers survive."""
     soup = BeautifulSoup(html, "html.parser")
     sections: list[Section] = []
-    heading, lines = default_heading, []
+    # h2 starts as the part/page title, so an h3 before any h2 still has context.
+    heading, parent, h2, lines = default_heading, "", default_heading, []
 
     def flush():
         text = _clean(" ".join(lines))
-        if text:
-            sections.append(Section(heading=heading, text=text, url=url))
+        if text and not is_placeholder(text):
+            sections.append(Section(heading=heading, text=text, url=url, parent=parent))
 
     for el in soup.find_all(list(HEADING_TAGS | BLOCK_TAGS)):
         if el.name in HEADING_TAGS:
             flush()
             heading, lines = _clean(el.get_text(" ")), []
+            if el.name == "h2":
+                h2, parent = heading, ""
+            else:
+                parent = h2  # h3/h4 remembers the h2 it sits under
         elif el.name == "tr":
             cells = [_clean(c.get_text(" ")) for c in el.find_all(["th", "td"])]
             lines.append(" | ".join(c for c in cells if c) + ".")
@@ -86,7 +105,7 @@ def html_to_sections(html: str, default_heading: str, url: str) -> list[Section]
     return sections
 
 
-def parse_content(raw: dict, base_url: str = "https://www.gov.uk") -> Document:
+def parse_content(raw: dict, base_url: str = "https://www.gov.uk", topic: str = "") -> Document:
     base_path = raw.get("base_path", "")
     url = base_url + base_path
     title = _clean(raw.get("title", ""))
@@ -111,6 +130,7 @@ def parse_content(raw: dict, base_url: str = "https://www.gov.uk") -> Document:
         description=_clean(raw.get("description") or ""),
         doc_format=raw.get("document_type") or raw.get("schema_name", ""),
         updated_at=raw.get("public_updated_at", ""),
+        topic=topic,
         topics=sorted({t["title"] for t in taxons if t.get("title")}),
         sections=sections,
     )
